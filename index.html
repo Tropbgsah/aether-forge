@@ -352,6 +352,9 @@
             <div id="code-input-container">
                 <input type="text" id="daily-code-input" placeholder="Entrez le code Base64 ici..." />
                 <button id="validate-code-btn">VALIDER</button>
+                <button id="install-pwa-btn" style="display: none; padding: 10px 20px; margin-top: 15px;">
+    Installer l'Application 💾
+</button>
             </div>
         </div>
 
@@ -1058,9 +1061,6 @@
             });
             
         });
-        
-    </script>
-    <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       // L'enregistrement doit pointer vers le fichier à la racine
@@ -1073,6 +1073,43 @@
         });
     });
   }
+        let deferredPrompt;
+const installButton = document.getElementById('install-pwa-btn');
+
+// L'événement beforeinstallprompt se déclenche lorsque le navigateur détecte que la PWA est prête.
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Empêche le navigateur d'afficher son invite automatique (le mini-infobar).
+    e.preventDefault();
+    // Stocke l'événement pour pouvoir l'appeler plus tard.
+    deferredPrompt = e;
+    
+    // 1. Affiche ton bouton personnalisé.
+    installButton.style.display = 'block';
+
+    installButton.addEventListener('click', (event) => {
+        // 2. Cache ton bouton.
+        installButton.style.display = 'none';
+        
+        // 3. Déclenche l'invite d'installation stockée.
+        deferredPrompt.prompt();
+        
+        // Attends le choix de l'utilisateur (Accepté/Refusé).
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('Installation acceptée par l\'utilisateur');
+            } else {
+                console.log('Installation refusée par l\'utilisateur');
+            }
+            deferredPrompt = null; // On peut jeter l'événement après usage.
+        });
+    });
+});
+
+// Écoute l'événement qui se produit si l'utilisateur installe via le menu du navigateur
+window.addEventListener('appinstalled', (e) => {
+    console.log('Aether Forge a été installé avec succès !');
+    installButton.style.display = 'none';
+});
 </script>
 </body>
 </html>
