@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow - Aether Forge V4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <link rel="manifest" href="/manifest.json">
 
     <style>
         /* --- Styles Généraux et Thème AETHER FORGE (Bleu Pastel/Néon) --- */
@@ -1059,5 +1060,19 @@
         });
         
     </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // L'enregistrement doit pointer vers le fichier à la racine
+      navigator.serviceWorker.register('/sw.js') 
+        .then(registration => {
+          console.log('Service Worker enregistré.');
+        })
+        .catch(error => {
+          console.log('Échec de l\'enregistrement:', error);
+        });
+    });
+  }
+</script>
 </body>
 </html>
