@@ -1,11 +1,11 @@
 {
-  "name": "AETHER FORGE",
-  "short_name": "AF",
-  "description": "inspiré de solo leveling.",
-  "start_url": "/",
+  "name": "Shadow - Aether Forge V4",
+  "short_name": "AetherForge",
+  "description": "Système de suivi gamifié pour l'amélioration personnelle (Shadow).",
+  "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
+  "background_color": "#141A23",
+  "theme_color": "#00FFFF",
   "icons": [
     {
       "src": "/af.png",
@@ -15,6 +15,16 @@
     {
       "src": "/af.png",
       "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/af.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/af.png",
+      "sizes": "48x48",
       "type": "image/png"
     }
   ]
