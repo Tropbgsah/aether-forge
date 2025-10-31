@@ -1,15 +1,13 @@
 // sw.js
-// Version du cache augmentée pour forcer le Service Worker à se mettre à jour
-const CACHE_NAME = 'aether-forge-cache-v3'; 
+const CACHE_NAME = 'aether-forge-cache-v3'; // Vérifie que tu as bien V3
 
-// Liste des fichiers à mettre en cache. TOUS les chemins internes DOIVENT inclure /aether-forge/.
+// Ces chemins doivent inclure /aether-forge/
 const URLS_TO_CACHE = [
-  '/aether-forge/', // Représente la page d'accueil du sous-dossier
+  '/aether-forge/', 
   '/aether-forge/index.html',
   '/aether-forge/manifest.json',
   '/aether-forge/sw.js',
-  '/aether-forge/af.png', // Ton icône
-  // URL externe non modifiée
+  '/aether-forge/af.png', 
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js' 
 ];
 
