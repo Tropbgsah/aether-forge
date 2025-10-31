@@ -1061,15 +1061,17 @@
             });
             
         });
+  
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // L'enregistrement doit pointer vers le fichier à la racine
-      navigator.serviceWorker.register('/sw.js') 
+      // Le chemin d'accès doit inclure le nom du dépôt si tu utilises une User Page
+      // C'est souvent le cas pour les projets hébergés sur GitHub Pages
+      navigator.serviceWorker.register('/aether-forge/sw.js') 
         .then(registration => {
-          console.log('Service Worker enregistré.');
+          console.log('Service Worker enregistré avec succès !', registration.scope);
         })
         .catch(error => {
-          console.log('Échec de l\'enregistrement:', error);
+          console.error('Échec de l\'enregistrement du Service Worker:', error);
         });
     });
   }
