@@ -1,17 +1,16 @@
 // sw.js
-// Version mise à jour pour inclure Chart.js et les fichiers de ton dépôt GitHub
+// Version du cache augmentée pour forcer le Service Worker à se mettre à jour
+const CACHE_NAME = 'aether-forge-cache-v3'; 
 
-const CACHE_NAME = 'aether-forge-cache-v2'; // J'ai augmenté la version à 'v2' pour forcer la mise à jour
-// Liste des fichiers essentiels pour que le site fonctionne hors ligne
+// Liste des fichiers à mettre en cache. TOUS les chemins internes DOIVENT inclure /aether-forge/.
 const URLS_TO_CACHE = [
-  '/', 
-  '/index.html',
-  '/manifest.json',
-  '/sw.js',
-  '/af.png', // Ton icône
-  // *** NOUVEAU : Inclure la librairie externe Chart.js ***
+  '/aether-forge/', // Représente la page d'accueil du sous-dossier
+  '/aether-forge/index.html',
+  '/aether-forge/manifest.json',
+  '/aether-forge/sw.js',
+  '/aether-forge/af.png', // Ton icône
+  // URL externe non modifiée
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js' 
-  // AJOUTE ICI TES AUTRES FICHIERS (CSS, JS personnels)
 ];
 
 // --- 1. ÉVÉNEMENT D'INSTALLATION (Mise en cache) ---
@@ -20,12 +19,12 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        // Le cache.addAll() échoue si un seul fichier n'est pas trouvé
-        // Assure-toi que tous les chemins sont corrects !
+        // Tente d'ajouter tous les fichiers au cache
         return cache.addAll(URLS_TO_CACHE);
       })
       .catch((error) => {
-        console.error('Échec du pré-caching:', error);
+        // En cas d'échec (souvent dû à une URL non trouvée), l'erreur est ici
+        console.error('Échec du pré-caching, vérifiez les chemins URLS_TO_CACHE :', error);
       })
   );
   self.skipWaiting();
@@ -51,20 +50,17 @@ self.addEventListener('activate', (event) => {
 
 // --- 3. ÉVÉNEMENT DE RÉCUPÉRATION (Servir depuis le cache en premier) ---
 self.addEventListener('fetch', (event) => {
-  // Cette condition assure que nous mettons en cache les fichiers de la même origine
-  // ET les fichiers externes spécifiés (comme Chart.js)
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Si la ressource est dans le cache, on la sert immédiatement
+        // Si la ressource est dans le cache, on la sert
         if (response) {
           return response;
         }
         
-        // Si elle n'est pas dans le cache, on va sur le réseau pour la chercher
+        // Sinon, on va sur le réseau pour la chercher
         return fetch(event.request).catch(() => {
-            // Optionnel : Gérer une page de fallback pour les requêtes non trouvées (si tu as une page hors ligne dédiée)
-            console.log("Requête réseau échouée et non trouvée dans le cache.");
+            // Logique de fallback si la requête échoue et n'est pas dans le cache
         });
       })
   );
