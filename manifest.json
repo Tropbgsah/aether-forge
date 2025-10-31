@@ -2,7 +2,7 @@
   "name": "Shadow - Aether Forge V4",
   "short_name": "AetherForge",
   "description": "Système de suivi gamifié pour l'amélioration personnelle (Shadow).",
-  "start_url": "/index.html",
+  "start_url": "/aether-forge/index.html",
   "display": "standalone",
   "background_color": "#141A23",
   "theme_color": "#00FFFF",
