@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow - Aether Forge V4</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* --- Styles Généraux et Thème AETHER FORGE (Bleu Pastel/Néon) --- */
+        :root {
+            --color-dark-bg: #141A23; /* Fond très sombre (noir bleuté) */
+            --color-panel-bg: #222B36; /* Fond de panneau sombre */
+            --color-accent: #87CEFA; /* Bleu Ciel Pastel (Bleu clair vibrant) */
+            --color-accent-neon: #00FFFF; /* Cyan Néon pour le glow */
+            --color-text-light: #F0F8FF; /* Texte principal clair */
+            --color-text-dim: #A9B3C0; /* Texte secondaire gris-bleu */
+            --color-glow: 0 0 15px rgba(0, 255, 255, 0.7); /* Effet néon Cyan/Bleu */
+            --radius-main: 15px; /* Bords légèrement arrondis */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.05) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            padding: 20px 0;
+            display: grid;
+            gap: 20px;
+            /* 💡 CHANGEMENT : Plus de colonnes égales pour une meilleure horizontalité générale */
+            grid-template-columns: 1fr 1fr; /* Deux colonnes de taille égale */ 
+            opacity: 0; 
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out; 
+        }
+        
+        .container.loaded {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 💡 NOUVEAU : Style pour la boîte de notification */
+        #notification-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: var(--color-accent-neon);
+            color: var(--color-dark-bg);
+            border-radius: var(--radius-main);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.9);
+            z-index: 2000;
+            font-weight: bold;
+            display: none; /* Caché par défaut */
+            animation: fadeInOut 5s ease-in-out forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(20px); display: none;}
+        }
+
+        /* --- MEDIA QUERIES (RESPONSIVE MOBILE) --- */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr; /* Revenir à une seule colonne sur mobile */ 
+            }
+            /* 💡 CHANGEMENT : Disposition des colonnes en mode grille 1x1 sur grand écran */
+            #stats-page {
+                display: grid; 
+                grid-template-columns: 1fr; 
+                gap: 20px; 
+            }
+            .right-column, .left-column {
+                display: block; 
+            }
+            .panel {
+                margin-bottom: 20px;
+            }
+        }
+
+        /* 💡 NOUVEAU/CHANGEMENT : Disposition interne des colonnes pour horizontalité */
+        #stats-page {
+            grid-column: 1 / -1; /* Prend toute la largeur */
+            display: grid;
+            /* Changement: 2 colonnes dans stats-page, mais on utilise le container pour la grille principale */
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px;
+        }
+        
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Pour que les panneaux prennent toute la hauteur de la colonne */
+        #main-stats-panel, #radar-panel, #xp-panel, #shop-panel, #inventory-panel, #quests-panel {
+             flex-grow: 1;
+        }
+        
+        /* ... Le reste des styles reste inchangé ... */
+
+        h1 {
+            text-align: center;
+            font-size: 3.5em;
+            color: var(--color-text-light);
+            text-shadow: 0 0 5px var(--color-accent-neon);
+            margin: 0 0 20px 0;
+            grid-column: 1 / -1; 
+        }
+        
+        /* Style pour l'animation du Titre (Utilisation de fixed pour le centrage) */
+        #main-title {
+            position: fixed; 
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            transition: all 0.5s ease-in-out;
+            animation: neon-glow 1.5s infinite alternate; 
+        }
+        
+        /* Animation d'introduction du titre: monte et s'opacifie */
+        #main-title.animate-up {
+            top: 20px;
+            opacity: 0; 
+            transform: translate(-50%, 0);
+            animation: none; 
+        }
+
+        @keyframes neon-glow {
+            from {
+                text-shadow: 0 0 5px var(--color-accent), 0 0 10px var(--color-accent-neon);
+                opacity: 0.8;
+            }
+            to {
+                text-shadow: 0 0 15px var(--color-accent), 0 0 25px var(--color-accent-neon);
+                opacity: 1;
+            }
+        }
+
+        /* Classe pour masquer le contenu au début */
+        .intro-hide {
+            display: none !important;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            color: var(--color-text-light);
+            border-bottom: 2px solid var(--color-accent); 
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background-color: var(--color-panel-bg);
+            border-radius: var(--radius-main);
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5), 0 0 5px rgba(135, 206, 250, 0.2);
+        }
+        
+        /* --- Zone de Saisie du Code Journalier (Maintenant avec un bouton) --- */
+        #code-input-panel {
+            grid-column: 1 / -1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #code-input-container {
+            display: none; /* Champ caché par défaut */
+            width: 100%;
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #code-input-container.visible {
+            display: flex;
+        }
+
+        #daily-code-input {
+            flex-grow: 1;
+            padding: 15px;
+            border: 2px solid var(--color-accent);
+            border-radius: 10px;
+            background-color: #2F3C4F;
+            color: var(--color-text-light);
+            font-size: 1.1em;
+            outline: none;
+        }
+
+        #claim-code-btn, #validate-code-btn {
+            padding: 12px 25px;
+            background-color: var(--color-accent);
+            color: var(--color-dark-bg);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            box-shadow: 0 0 10px var(--color-accent-neon);
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        
+        /* Réduire la taille du bouton de validation sur mobile */
+        @media (max-width: 600px) {
+            #claim-code-btn, #validate-code-btn {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+        }
+
+
+        /* --- Contenu Spécifique à la Page Stats --- */
+        
+        /* Radar Chart (Stat Map) Compaction */
+        #radar-chart-container {
+             /* Hauteur réduite pour économiser de l'espace */
+            height: 250px; 
+            padding-bottom: 15px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+
+
+        /* Styles des éléments internes (inchangés) */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(135, 206, 250, 0.3);
+            font-size: 1.1em;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: var(--color-accent);
+            text-shadow: 0 0 5px rgba(135, 206, 250, 0.4);
+        }
+
+        .increase-stat-btn {
+            background-color: var(--color-accent) !important;
+            color: var(--color-dark-bg) !important;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        
+        .health-separator {
+            color: var(--color-text-dim) !important;
+            font-size: 0.9em;
+            padding-top: 15px !important;
+        }
+
+        #xp-panel {
+            text-align: center;
+        }
+
+        .xp-circle-container {
+            width: 150px;
+            height: 150px;
+            margin: 20px auto 0;
+            position: relative;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: var(--color-glow);
+        }
+        
+        #xp-percentage-text {
+            position: absolute; 
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--color-accent-neon);
+            z-index: 10;
+            text-shadow: var(--color-glow);
+        }
+        
+        .item-list-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #2F3C4F;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .item-name {
+            color: var(--color-text-light);
+            font-weight: 500;
+        }
+
+        .buy-btn, .complete-btn {
+            background-color: var(--color-accent);
+            color: var(--color-dark-bg);
+            border: none;
+            border-radius: 5px;
+            padding: 6px 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.1s;
+        }
+        
+        .xp-level-display {
+            font-size: 1.1em;
+            color: var(--color-text-light);
+            text-shadow: 0 0 3px rgba(0, 255, 255, 0.4);
+            margin-bottom: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <h1 id="main-title">AETHER FORGE SYSTEM</h1>
+
+    <div class="container intro-hide">
+        
+        <h1 class="system-title">AETHER FORGE SYSTEM</h1>
+        
+        <div id="code-input-panel" class="panel">
+            <button id="claim-code-btn">RECLAMER CODE JOURNALIER</button>
+            <div id="code-input-container">
+                <input type="text" id="daily-code-input" placeholder="Entrez le code Base64 ici..." />
+                <button id="validate-code-btn">VALIDER</button>
+            </div>
+        </div>
+
+        <div id="stats-page" class="page-content active">
+
+            <div class="left-column">
+                
+                <div id="main-stats-panel" class="panel">
+                    <h2>SKILL TRACKER</h2>
+                    
+                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 0.9em; color: var(--color-text-dim);">
+                        <span class="xp-level-display" id="display-level" style="color: var(--color-accent);">LEVEL 1</span>
+                        <span id="display-points">Points : 0</span>
+                        <span id="display-money">Money : 0 Coins</span>
+                    </div>
+
+                    <div id="rpg-stats-list">
+                        </div>
+                    
+                    <div id="health-stats-list" style="margin-top: 15px;">
+                        <p class="health-separator">SUIVI DE SANTÉ</p>
+                        </div>
+                </div>
+
+                <div id="quests-panel" class="panel">
+                    <h2>DAILY QUESTS</h2>
+                    <div id="main-quests-list">
+                        </div>
+                    <p style="margin-top: 15px; font-size: 0.8em; color: var(--color-text-dim);">
+                        Quêtes secondaires générées par l'historique.
+                    </p>
+                </div>
+
+                <div id="xp-panel" class="panel">
+                    <h2>GOAL COMPLETION</h2>
+                    <div class="xp-circle-container">
+                        <canvas id="xpDonutChart" width="150" height="150"></canvas>
+                        <span id="xp-percentage-text">0%</span>
+                    </div>
+                    <p style="font-size: 0.9em; color: var(--color-text-dim); margin-top: 15px;">
+                        XP : <span id="display-xp-text">0/100</span> (Prochain Niveau : <span id="display-next-level">2</span>)
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="right-column">
+                
+                <div id="radar-panel" class="panel">
+                    <h2>STAT MAP</h2>
+                    <div id="radar-chart-container">
+                        <canvas id="statsRadarChart" width="300" height="300"></canvas>
+                    </div>
+                </div>
+
+                <div id="inventory-panel" class="panel">
+                    <h2>INVENTORY</h2>
+                    <div id="inventory-grid" style="display: flex; flex-wrap: wrap; gap: 10px; padding-top: 10px;">
+                        </div>
+                </div>
+                
+                <div id="shop-panel" class="panel">
+                    <h2>MARKETPLACE</h2>
+                    <div id="shop-list">
+                        </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div id="quests-page" class="page-content"></div>
+        <div id="shop-page" class="page-content"></div>
+
+
+    </div>
+    
+    <div id="notification-box">
+        🚨 ALERTE : Il est 21h00. Temps de faire le bilan !
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'shadow_data';
+
+        const BASE_XP_REQUIRED = 100;
+        const XP_PER_LEVEL_MULTIPLIER = 1.5; 
+        const REPLACE_STATS = ['poids', 'bmi'];
+
+        let radarChartInstance = null; 
+        let xpDonutChartInstance = null; 
+        let dailyNotificationSent = false; // 💡 NOUVEAU : Drapeau pour s'assurer que la notif n'est envoyée qu'une fois par jour
+
+        const initialData = {
+            "stats": {
+                "charisme": 1, "empathie": 1, "confiance": 1, "patience": 1,
+                "beauté": 1, "créativité": 1, "endurance": 1, "discipline": 1,
+                "sociabilité": 1, "religion": 1,
+                "poids": 75, "bmi": 24.5, 
+                "points": 0, "money": 0,
+                "level": 1, "xp_total": 0, "xp_restant": 0, "xp_max": BASE_XP_REQUIRED
+            },
+            "inventory": ["Cahier de notes", "Bon pour un café"],
+            "mainQuests": ["Définir les objectifs à long terme"],
+            "secondaryQuests": [],
+            "shop": [
+                {"name": "Boisson énergisante", "price": 10},
+                {"name": "Récompense spéciale (jeu)", "price": 20},
+                {"name": "Bon pour une sieste", "price": 5}
+            ],
+            "history": [] 
+        };
+
+        let shadowData = {};
+        
+        // 💡 NOUVEAU : 10. Fonction de vérification de la notification quotidienne
+        function checkDailyNotification() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const notificationTime = 21; // 21h00
+
+            // Vérifie l'heure exacte et s'assure qu'elle n'a pas été déjà envoyée aujourd'hui
+            if (hours === notificationTime && minutes === 0 && !dailyNotificationSent) {
+                
+                const notifBox = document.getElementById('notification-box');
+                
+                // 1. Afficher la boîte de notification
+                notifBox.style.display = 'block';
+                notifBox.style.opacity = '1';
+                
+                // 2. Cacher la boîte après 5 secondes (animation gérée par le CSS)
+                setTimeout(() => {
+                    notifBox.style.display = 'none';
+                }, 5000); 
+                
+                // 3. Mettre le drapeau à vrai et sauvegarder la date (pour la vérification le lendemain)
+                dailyNotificationSent = true;
+                localStorage.setItem('last_notification_date', now.toDateString());
+            }
+
+            // Réinitialise le drapeau si le jour change
+            const lastNotifDate = localStorage.getItem('last_notification_date');
+            if (lastNotifDate && lastNotifDate !== now.toDateString()) {
+                dailyNotificationSent = false;
+                localStorage.removeItem('last_notification_date'); // Nettoyage de l'ancienne date
+            }
+
+            // Si le drapeau est à VRAI au chargement, cela signifie qu'elle a déjà été envoyée aujourd'hui.
+            if (!lastNotifDate && localStorage.getItem('last_notification_date') === now.toDateString()) {
+                 dailyNotificationSent = true;
+            }
+        }
+        
+        // 0. Animation de Lancement (inchangé)
+        function startAnimation() {
+            const titleElement = document.getElementById('main-title');
+            const containerElement = document.querySelector('.container');
+
+            setTimeout(() => {
+                titleElement.classList.add('animate-up');
+                
+                setTimeout(() => {
+                    containerElement.classList.remove('intro-hide');
+                    containerElement.classList.add('loaded');
+                    
+                    titleElement.remove();
+                    
+                    // 💡 NOUVEAU : Démarre la vérification des notifications après le chargement
+                    checkDailyNotification(); 
+                    setInterval(checkDailyNotification, 60000); // Vérifie toutes les 60 secondes (1 minute)
+
+                }, 500); 
+                
+            }, 1000); 
+        }
+
+
+        // 1. Initialisation : Charger les données
+        function loadData() {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                try {
+                    const loadedData = JSON.parse(storedData);
+                    shadowData = { ...initialData, ...loadedData };
+                    shadowData.stats = { ...initialData.stats, ...loadedData.stats };
+                } catch (e) {
+                    shadowData = initialData;
+                }
+            } else {
+                shadowData = initialData;
+            }
+            checkLevelUp(false);
+            saveData(); 
+            
+            // 💡 NOUVEAU : Vérifie le statut de la notification pour le jour actuel au chargement
+            const lastNotifDate = localStorage.getItem('last_notification_date');
+            if (lastNotifDate === new Date().toDateString()) {
+                dailyNotificationSent = true;
+            }
+        }
+
+        // 2. Sauvegarde des données (inchangé)
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(shadowData));
+        }
+
+        // 3. Gestion de la montée de niveau (inchangé)
+        function checkLevelUp(showAlert = true) { /* ... (logique inchangée) ... */ 
+            let leveledUp = false;
+            
+            if (shadowData.stats.level > 1) {
+                shadowData.stats.xp_max = Math.floor(BASE_XP_REQUIRED * Math.pow(XP_PER_LEVEL_MULTIPLIER, shadowData.stats.level - 1));
+            } else {
+                 shadowData.stats.xp_max = BASE_XP_REQUIRED;
+            }
+            
+            while (shadowData.stats.xp_restant >= shadowData.stats.xp_max) {
+                shadowData.stats.level += 1;
+                shadowData.stats.xp_restant -= shadowData.stats.xp_max;
+                
+                const nextLevelXP = Math.floor(BASE_XP_REQUIRED * Math.pow(XP_PER_LEVEL_MULTIPLIER, shadowData.stats.level - 1));
+                shadowData.stats.xp_max = nextLevelXP;
+                
+                shadowData.stats.points += 5; 
+                shadowData.stats.money += 25; 
+                
+                if (showAlert) {
+                    alert(`Félicitations ! Vous êtes passé au Niveau ${shadowData.stats.level} ! Vous gagnez 5 Points et 25 Coins !`);
+                }
+                leveledUp = true;
+            }
+            return leveledUp;
+        }
+
+        // 4. Fonction de mise à jour complète de l'affichage (inchangé)
+        function updateDisplay() {
+            document.getElementById('display-points').textContent = `Points : ${shadowData.stats.points}`;
+            document.getElementById('display-money').textContent = `Money : ${shadowData.stats.money} Coins`;
+            document.getElementById('display-level').textContent = `LEVEL ${shadowData.stats.level}`;
+            document.getElementById('display-next-level').textContent = shadowData.stats.level + 1;
+
+            const xpPercentage = (shadowData.stats.xp_restant / shadowData.stats.xp_max) * 100;
+            document.getElementById('xp-percentage-text').textContent = `${Math.floor(xpPercentage)}%`;
+            document.getElementById('display-xp-text').textContent = `${shadowData.stats.xp_restant}/${shadowData.stats.xp_max}`;
+
+            
+            renderStatsTable();
+            drawRadarChart();
+            drawXpDonutChart(xpPercentage); 
+            renderQuests(); 
+            renderInventory(); 
+            renderShop(); 
+        }
+
+        // 5. Rendu du Tableau des Statistiques et Logique d'augmentation (inchangé)
+        function renderStatsTable() {
+            const rpgContainer = document.getElementById('rpg-stats-list');
+            const healthContainer = document.getElementById('health-stats-list');
+            
+            rpgContainer.innerHTML = ''; 
+            const healthDiv = healthContainer.querySelector('div');
+            if(healthDiv) healthDiv.remove();
+
+            const statKeys = Object.keys(shadowData.stats);
+            const rpgStats = statKeys.filter(key => 
+                !['points', 'money', 'poids', 'bmi', 'level', 'xp_total', 'xp_restant', 'xp_max'].includes(key)
+            );
+            const healthStats = ['poids', 'bmi']; 
+
+            let rpgHtml = '';
+            
+            rpgStats.forEach(statName => {
+                const statValue = shadowData.stats[statName];
+                const displayStatName = statName.charAt(0).toUpperCase() + statName.slice(1);
+                const isDisabled = shadowData.stats.points <= 0;
+
+                rpgHtml += `
+                    <div class="stat-row">
+                        <span>${displayStatName}</span>
+                        <span class="stat-value">${statValue}</span>
+                        <button 
+                            class="increase-stat-btn" 
+                            data-stat="${statName}" 
+                            ${isDisabled ? 'disabled' : ''}
+                            style="opacity: ${isDisabled ? 0.4 : 1};"
+                        >
+                            +
+                        </button>
+                    </div>
+                `;
+            });
+            rpgContainer.innerHTML = rpgHtml;
+            
+            let healthHtml = '<div style="margin-top: 10px;">';
+            healthStats.forEach(statName => {
+                const statValue = shadowData.stats[statName].toFixed(1);
+                const displayStatName = statName.toUpperCase(); 
+                const unit = (statName === 'poids' ? ' kg' : '');
+
+                healthHtml += `
+                    <div class="stat-row" style="border-bottom: 1px dashed rgba(135, 206, 250, 0.1);">
+                        <span style="color: var(--color-text-dim);">${displayStatName}</span>
+                        <span class="stat-value">${statValue}${unit}</span>
+                        <span></span>
+                    </div>
+                `;
+            });
+            healthHtml += '</div>';
+            healthContainer.insertAdjacentHTML('beforeend', healthHtml);
+
+
+            document.querySelectorAll('.increase-stat-btn:not([disabled])').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const statToIncrease = e.target.getAttribute('data-stat');
+                    increaseStat(statToIncrease);
+                });
+            });
+        }
+        
+        function increaseStat(statName) {
+            if (shadowData.stats.points > 0) {
+                shadowData.stats.points -= 1;
+                shadowData.stats[statName] += 1;
+                
+                shadowData.stats.xp_total += 10;
+                shadowData.stats.xp_restant += 10;
+
+                checkLevelUp(); 
+                
+                saveData();
+                updateDisplay();
+            } else {
+                alert("Fonds insuffisants ! Vous n'avez plus de points à dépenser.");
+            }
+        }
+
+
+        // 6. Logique de Traitement du Code Journalier (inchangé)
+        function processDailyCode(base64Code) {
+            if (!base64Code) {
+                alert("Veuillez entrer un code Base64.");
+                return;
+            }
+
+            let decodedData;
+            try {
+                const jsonString = atob(base64Code);
+                decodedData = JSON.parse(jsonString);
+            } catch (e) {
+                alert("Erreur: Le code Base64 est invalide ou le format JSON est incorrect.");
+                return;
+            }
+
+            if (typeof decodedData.points !== 'number' || typeof decodedData.money !== 'number' || !Array.isArray(decodedData.mainQuests)) {
+                alert("Erreur de format: Le code JSON ne contient pas les champs requis (points, money, mainQuests).");
+                return;
+            }
+
+            shadowData.stats.points += decodedData.points;
+            shadowData.stats.money += decodedData.money;
+            shadowData.mainQuests = decodedData.mainQuests;
+            
+            shadowData.stats.xp_total += 50;
+            shadowData.stats.xp_restant += 50;
+
+            let updateMessage = `Vous avez gagné ${decodedData.points} Points et ${decodedData.money} Coins. (XP +50)`;
+
+            if (decodedData.newItems && Array.isArray(decodedData.newItems)) {
+                shadowData.inventory.push(...decodedData.newItems);
+                updateMessage += ` et ${decodedData.newItems.length} nouvel(s) objet(s) dans l'inventaire !`;
+            }
+            
+            if (decodedData.shopItemsToAdd && Array.isArray(decodedData.shopItemsToAdd)) {
+                 shadowData.shop.push(...decodedData.shopItemsToAdd);
+                 updateMessage += ` (${decodedData.shopItemsToAdd.length} objet(s) ajouté(s) à la Marketplace).`;
+            }
+
+            if (decodedData.statAdjustments && typeof decodedData.statAdjustments === 'object') {
+                const statsKeys = Object.keys(shadowData.stats).filter(key => !['points', 'money', 'level', 'xp_total', 'xp_restant', 'xp_max'].includes(key));
+                let adjustmentsCount = 0;
+                
+                for (const stat in decodedData.statAdjustments) {
+                    if (statsKeys.includes(stat) && typeof decodedData.statAdjustments[stat] === 'number') {
+                        
+                        if (REPLACE_STATS.includes(stat)) {
+                            shadowData.stats[stat] = decodedData.statAdjustments[stat]; 
+                        } else {
+                            shadowData.stats[stat] += decodedData.statAdjustments[stat]; 
+                        }
+                        
+                        adjustmentsCount++;
+                    }
+                }
+                if (adjustmentsCount > 0) {
+                    updateMessage += ` (${adjustmentsCount} stat(s) ajustée(s)).`;
+                }
+            }
+            
+            checkLevelUp(); 
+            
+            alert(updateMessage);
+            saveData();
+            updateDisplay();
+            
+            // Masquer le champ de saisie après validation
+            document.getElementById('code-input-container').classList.remove('visible');
+            document.getElementById('claim-code-btn').style.display = 'block';
+            document.getElementById('daily-code-input').value = '';
+        }
+        
+        // 7. Dessin du Radar Chart (STAT MAP) (inchangé)
+        function drawRadarChart() {
+            const canvas = document.getElementById('statsRadarChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            const statKeys = Object.keys(shadowData.stats).filter(key => 
+                !['points', 'money', 'poids', 'bmi', 'level', 'xp_total', 'xp_restant', 'xp_max'].includes(key)
+            );
+
+            const statValues = statKeys.map(key => shadowData.stats[key]);
+            const maxStatValue = Math.max(...statValues, 10); 
+            const statNames = statKeys.map(name => name.charAt(0).toUpperCase() + name.slice(1));
+
+            if (radarChartInstance) {
+                radarChartInstance.destroy();
+            }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: statNames,
+                    datasets: [{
+                        label: 'Niveau des Compétences',
+                        data: statValues,
+                        backgroundColor: 'rgba(0, 255, 255, 0.3)', 
+                        borderColor: 'var(--color-accent-neon)', 
+                        pointBackgroundColor: 'var(--color-accent-neon)',
+                        pointBorderColor: '#fff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            pointLabels: {
+                                color: 'var(--color-text-light)',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: maxStatValue,
+                            ticks: {
+                                display: false, 
+                                backdropColor: 'var(--color-panel-bg)' 
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false 
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 8. Dessin du Donut Chart (GOAL COMPLETION - XP) (inchangé)
+        function drawXpDonutChart(xpPercentage) {
+            const canvas = document.getElementById('xpDonutChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            const remainingPercentage = 100 - xpPercentage;
+            
+            if (xpDonutChartInstance) {
+                xpDonutChartInstance.destroy();
+            }
+
+            xpDonutChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['XP Actuelle', 'XP Restante'],
+                    datasets: [{
+                        data: [xpPercentage, remainingPercentage],
+                        backgroundColor: [
+                            'var(--color-accent-neon)', 
+                            'rgba(255, 255, 255, 0.1)' 
+                        ],
+                        borderColor: [
+                            'var(--color-panel-bg)',
+                            'var(--color-panel-bg)'
+                        ],
+                        borderWidth: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%', 
+                    plugins: {
+                        legend: {
+                            display: false 
+                        },
+                        tooltip: {
+                            enabled: false 
+                        }
+                    },
+                    elements: {
+                        arc: {
+                            borderRadius: 5 
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // 9. Fonctions de gestion du contenu (Quêtes, Inventaire, Boutique) (logique interne inchangée, sauf si vous voulez les fonctions complètes pour tester)
+        
+        function completeQuest(type, index) { 
+            let questName;
+            let xpGain = 25; 
+            let moneyGain = 10;
+            
+            if (type === 'main') {
+                questName = shadowData.mainQuests.splice(index, 1)[0];
+                moneyGain = 30; // Récompense plus grande pour les quêtes principales
+            } else if (type === 'secondary') {
+                questName = shadowData.secondaryQuests.splice(index, 1)[0];
+                xpGain = 10;
+            } else {
+                return;
+            }
+
+            shadowData.stats.xp_total += xpGain;
+            shadowData.stats.xp_restant += xpGain;
+            shadowData.stats.money += moneyGain;
+
+            checkLevelUp();
+            saveData();
+            updateDisplay();
+            
+            alert(`Quête "${questName}" terminée ! XP +${xpGain}, Money +${moneyGain} Coins.`);
+        }
+        
+        function generateSecondaryQuests() { 
+            if (shadowData.secondaryQuests.length === 0) {
+                const statKeys = Object.keys(shadowData.stats).filter(key => !REPLACE_STATS.includes(key) && !['points', 'money', 'level', 'xp_total', 'xp_restant', 'xp_max'].includes(key));
+                const randomStat = statKeys[Math.floor(Math.random() * statKeys.length)];
+                
+                shadowData.secondaryQuests.push(
+                    `Lisez un article sur l'amélioration de votre ${randomStat}`,
+                    "Buvez 8 verres d'eau aujourd'hui",
+                    "Faites 15 minutes d'étirements ou de sport léger"
+                );
+            }
+        }
+        
+        function renderQuests() {
+            generateSecondaryQuests(); 
+
+            const mainQuestsContainer = document.getElementById('main-quests-list');
+            
+            const mainQuestsHtml = '<h3>Quêtes Principales</h3>' + 
+                (shadowData.mainQuests.length > 0 ? 
+                    shadowData.mainQuests.map((quest, index) => `
+                        <div class="item-list-row">
+                            <span class="item-name">⭐ ${quest}</span>
+                            <button onclick="completeQuest('main', ${index})" class="complete-btn">Terminer</button>
+                        </div>
+                    `).join('')
+                    : '<p style="font-style: italic; opacity: 0.7; color: var(--color-text-dim);">Pas de quêtes principales pour le moment.</p>'
+                );
+                
+            const secondaryQuestsHtml = '<h3 style="margin-top: 20px;">Quêtes Secondaires</h3>' + 
+                (shadowData.secondaryQuests.length > 0 ? 
+                    shadowData.secondaryQuests.map((quest, index) => `
+                        <div class="item-list-row" style="border: 1px dashed rgba(135, 206, 250, 0.3);">
+                            <span class="item-name" style="font-size: 0.95em;">🌱 ${quest}</span>
+                            <button onclick="completeQuest('secondary', ${index})" class="complete-btn" style="padding: 4px 8px; font-size: 0.9em;">OK</button>
+                        </div>
+                    `).join('')
+                    : '<p style="font-style: italic; opacity: 0.7; color: var(--color-text-dim);">Toutes les quêtes secondaires sont terminées !</p>'
+                );
+
+            mainQuestsContainer.innerHTML = mainQuestsHtml + secondaryQuestsHtml;
+        }
+
+        function renderInventory() {
+            const inventoryContainer = document.getElementById('inventory-grid');
+            inventoryContainer.innerHTML = ''; 
+
+            if (shadowData.inventory.length === 0) {
+                inventoryContainer.innerHTML = '<p style="font-style: italic; text-align: center; width: 100%; opacity: 0.7; color: var(--color-text-dim);">Votre inventaire est vide.</p>';
+                return;
+            }
+
+            const htmlContent = shadowData.inventory.map(itemName => {
+                let icon = '✨'; 
+                if (itemName.toLowerCase().includes('montre')) icon = '⌚';
+                else if (itemName.toLowerCase().includes('snack') || itemName.toLowerCase().includes('chips')) icon = '🍔';
+                else if (itemName.toLowerCase().includes('livre')) icon = '📖';
+                else if (itemName.toLowerCase().includes('téléphone')) icon = '📱';
+                else if (itemName.toLowerCase().includes('café')) icon = '☕';
+                else if (itemName.toLowerCase().includes('notes')) icon = '📝';
+                else if (itemName.toLowerCase().includes('sieste')) icon = '😴';
+
+
+                return `
+                    <div class="inventory-item" title="${itemName}" style="
+                        display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                        width: 90px; height: 90px; background-color: #2F3C4F; 
+                        border: 1px solid var(--color-accent); border-radius: 10px; 
+                        box-shadow: 0 0 5px rgba(135, 206, 250, 0.4);
+                        cursor: help; margin-bottom: 5px; /* Pour l'alignement flex-wrap */
+                    ">
+                        <span style="font-size: 2.5em;">${icon}</span>
+                        <span style="font-size: 0.7em; color: var(--color-text-dim); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemName}</span>
+                    </div>
+                `;
+            }).join('');
+
+            inventoryContainer.innerHTML = htmlContent;
+        }
+
+        function renderShop() {
+            const shopContainer = document.getElementById('shop-list');
+            shopContainer.innerHTML = ''; 
+
+            const htmlContent = shadowData.shop.map((item, index) => {
+                const isDisabled = shadowData.stats.money < item.price;
+                const priceText = item.price === 0 ? 'Gratuit' : `${item.price} Coins`;
+                
+                let icon = '🎁';
+                if (item.name.toLowerCase().includes('boisson')) icon = '🥤';
+                else if (item.name.toLowerCase().includes('récompense') || item.name.toLowerCase().includes('jeu')) icon = '🎮';
+                else if (item.name.toLowerCase().includes('sieste')) icon = '😴';
+
+
+                return `
+                    <div class="item-list-row">
+                        <span class="item-name">${icon} ${item.name}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="color: ${isDisabled ? 'red' : 'var(--color-accent)'}; font-weight: bold;">${priceText}</span>
+                            <button 
+                                onclick="buyItem(${index})" 
+                                class="buy-btn" 
+                                ${isDisabled ? 'disabled' : ''}
+                                style="opacity: ${isDisabled ? 0.5 : 1};"
+                            >
+                                Acheter
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            shopContainer.innerHTML = htmlContent;
+        }
+
+        function buyItem(index) {
+            const item = shadowData.shop[index];
+            if (shadowData.stats.money >= item.price) {
+                shadowData.stats.money -= item.price;
+                shadowData.inventory.push(item.name);
+                
+                // Retirer l'objet du magasin (optionnel, selon le type d'objet)
+                // shadowData.shop.splice(index, 1); 
+
+                saveData();
+                updateDisplay();
+                alert(`${item.name} acheté pour ${item.price} Coins. Ajouté à l'inventaire !`);
+            } else {
+                alert("Fonds insuffisants. Vous ne pouvez pas acheter cet article.");
+            }
+        }
+
+        // --- ÉVÉNEMENTS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            updateDisplay();
+            startAnimation(); 
+
+            document.getElementById('claim-code-btn').addEventListener('click', () => {
+                document.getElementById('code-input-container').classList.add('visible');
+                document.getElementById('claim-code-btn').style.display = 'none';
+            });
+
+            document.getElementById('validate-code-btn').addEventListener('click', () => {
+                const code = document.getElementById('daily-code-input').value.trim();
+                processDailyCode(code);
+            });
+            
+        });
+        
+    </script>
+</body>
+</html>
